@@ -1,23 +1,22 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from sqlalchemy import DateTime
 
 class TaskBaseSchema(BaseModel):
-    id: Optional[int] = None
-
-class TaskCreateSchema(TaskBaseSchema):
     title: str = Field(..., min_length=1)
-    description: str = ""
+    description: Optional[str] = Field(None, max_length=500)
     is_completed: bool = False
 
+
+class TaskCreateSchema(TaskBaseSchema):
     class Config:
         orm_mode = True
 
 
 class TaskUpdateSchema(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
-    is_completed: Optional[bool]
-
     class Config:
         orm_mode = True
+
+
+class TaskResponseSchema(TaskBaseSchema):
+    id: int
