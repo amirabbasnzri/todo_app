@@ -19,3 +19,4 @@ class Task(Base):
     def mark_completed(self) -> None:
         self.is_completed = True
         self.updated_at = func.now()
+        
