@@ -2,7 +2,7 @@ from config.database import Base
 from sqlalchemy import Column, DateTime, Integer, String, Boolean, func
 
 
-class Task(Base):
+class TaskModel(Base):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True, index=True)

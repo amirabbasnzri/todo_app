@@ -19,4 +19,4 @@ class TaskUpdateSchema(BaseModel):
 
 
 class TaskResponseSchema(TaskBaseSchema):
-    id: int
+    id: int = Field(..., description='Unique identifier of the object')
