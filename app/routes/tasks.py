@@ -1,28 +1,14 @@
 from fastapi import APIRouter, Path,Depends,HTTPException, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
 from app.schemas.tasks import *
 from app.models.tasks import TaskModel
 from sqlalchemy.orm import Session
-from config.database import get_db
+from config.database import get_db, SessionLocal
 from typing import List
-from datetime import datetime
-from config.database import SessionLocal
-from enum import Enum
-
+from sqlalchemy import func
 
 task_router = APIRouter(tags=["tasks"])
 
-def tasks_date_options():
-    db: Session = SessionLocal()
-    try:
-        earliest = db.query(func.min(TaskModel.created_at)).scalar()
-        latest = db.query(func.max(TaskModel.created_at)).scalar()
-        return earliest, latest
-    finally:
-        db.close()
-
-earliest, latest = tasks_date_options()
 
 
 @task_router.get("/tasks/all", response_model=List[TaskResponseSchema])
@@ -31,9 +17,7 @@ def retrieve_tasks_list(
     completed: bool = Query(None, description='Filter tasks based on being completed or not'),
     offset: int = Query(0, ge=0, description='Use for paginating based on passed items'),
     limit: int = Query(5, ge=0, le=50, description='Limiting the number of items to retrieve'),
-    created_after: datetime = Query(None, ge=earliest, description=f'Earliest: {earliest}'),
-    created_before: datetime = Query(None, le=latest, description=f'Latest {latest}')
-):
+   ):
     query = db.query(TaskModel)
 
     if completed is not None:
@@ -92,10 +76,47 @@ def update_task(request: TaskUpdateSchema, task_id: int = Path(..., gt=0), db: S
     return task_obj 
 
 
-@task_router.delete("/tasks/delete/{task_id}",status_code=204)
-def delete_task(task_id: int = Path(..., gt=0),db:Session = Depends(get_db)):
-    task_obj = db.query(TaskModel).filter_by(id=task_id).first()
-    if not task_obj:
-        raise HTTPException(status_code=404, detail="Task not found")
-    db.delete(task_obj)
+
+def get_id_range():
+    session = SessionLocal()
+    try:
+        min_id, max_id = session.query(
+            func.min(TaskModel.id),
+            func.max(TaskModel.id)
+        ).one()
+        return min_id, max_id
+    finally:
+        session.close()
+
+min_id, max_id = get_id_range()
+        
+@task_router.delete("/tasks/", status_code=204)
+def delete_tasks(
+    task_id: Optional[int] = Query(None, ge=1),
+    from_id: Optional[int] = Query(None, ge=1, example=f'min available id: {min_id}'),
+    to_id: Optional[int] = Query(None, ge=1,  example=f'max available id: {max_id}'),
+    delete_all: bool = Query(False),
+    db: Session = Depends(get_db)
+):
+    q = db.query(TaskModel)
+
+    if delete_all:
+        q.delete(synchronize_session=False)
+
+    elif task_id is not None:
+        if not q.filter(TaskModel.id == task_id).first():
+            raise HTTPException(404, "Task not found")
+        q.filter(TaskModel.id == task_id).delete(synchronize_session=False)
+
+    elif from_id is not None and to_id is not None:
+        if to_id < from_id:
+            raise HTTPException(400, "Invalid range")
+        q.filter(TaskModel.id.between(from_id, to_id)).delete(synchronize_session=False)
+
+    else:
+        raise HTTPException(
+            400,
+            "Provide task_id or from_id & to_id or set delete_all=true"
+        )
+
     db.commit()
