@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path,Depends,HTTPException, Query
+from fastapi import APIRouter, Path, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from app.schemas.tasks import *
 from app.models.tasks import TaskModel
@@ -11,7 +11,7 @@ task_router = APIRouter(tags=["tasks"])
 
 
 
-@task_router.get("/tasks/all", response_model=List[TaskResponseSchema])
+@task_router.get("/all", response_model=List[TaskResponseSchema])
 def retrieve_tasks_list(
     db: Session = Depends(get_db),
     completed: bool = Query(None, description='Filter tasks based on being completed or not'),
@@ -33,7 +33,7 @@ def retrieve_tasks_list(
     return response
 
 
-@task_router.get("/tasks/{task_id}",response_model=TaskResponseSchema)
+@task_router.get("/{task_id}",response_model=TaskResponseSchema)
 def retrieve_task_detail(task_id: int = Path(..., gt=0),db:Session = Depends(get_db)):
     task_obj = db.query(TaskModel).filter_by(id=task_id).first()
     if not task_obj:
@@ -41,7 +41,7 @@ def retrieve_task_detail(task_id: int = Path(..., gt=0),db:Session = Depends(get
     return task_obj
 
 
-@task_router.post("/tasks/create" ,response_model=TaskResponseSchema)
+@task_router.post("/create" ,response_model=TaskResponseSchema)
 def create_task(request:TaskCreateSchema,db:Session = Depends(get_db)):
     task_obj = TaskModel(**request.model_dump())
     db.add(task_obj)
@@ -50,7 +50,7 @@ def create_task(request:TaskCreateSchema,db:Session = Depends(get_db)):
     return task_obj
 
 
-@task_router.put("/tasks/edit/{task_id}", response_model=TaskResponseSchema)
+@task_router.put("/edit/{task_id}", response_model=TaskResponseSchema)
 def update_task(request: TaskUpdateSchema, task_id: int = Path(..., gt=0), db: Session = Depends(get_db)):
     task_obj = db.query(TaskModel).filter_by(id=task_id).first()
     if not task_obj:
@@ -76,7 +76,7 @@ def get_id_range():
 
 min_id, max_id = get_id_range()
         
-@task_router.delete("/tasks/", status_code=204)
+@task_router.delete("/delete", status_code=204)
 def delete_tasks(
     task_id: Optional[int] = Query(None, ge=1),
     from_id: Optional[int] = Query(None, ge=1, example=f'min available id: {min_id}'),
