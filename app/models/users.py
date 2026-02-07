@@ -3,8 +3,11 @@ from sqlalchemy import Column, DateTime, Integer, String, Boolean, func
 
 
 class UserModel(Base):
+    
+    __tablename__ = 'users'
+    
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    username = Column(String, index=True, nullable=False)
+    name = Column(String, index=True, nullable=False)
     email = Column(String, index=True, nullable=False)
     hashed_password = Column(String, index=True, nullable=False)
     is_active = Column(Boolean, default=True)
