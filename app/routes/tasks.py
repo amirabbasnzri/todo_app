@@ -29,20 +29,6 @@ def retrieve_tasks_list(
             )
         return response
 
-    if created_after and created_before:
-        response = query.filter(
-            TaskModel.created_at > created_after,
-            TaskModel.created_at < created_before
-        ).all()
-
-        if not response:
-            raise HTTPException(
-                status_code=404,
-                detail="There are no tasks in this time period"
-            )
-
-        return response
-
     response = query.limit(limit).offset(offset).all()
     return response
 
